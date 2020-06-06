@@ -128,11 +128,15 @@ By default, this module will create a resource group and the name of the resourc
 
 By default, this module will not create a DDoS Protection Plan. You can enable/disable it by appending an argument `create_ddos_plan`. If you want to enable a DDoS plan using this module, set argument `create_ddos_plan = true`
 
+## Custom DNS servers
+
+This is an optional feature and only applicable if you are using your own DNS servers superseding default DNS services provided by Azure. Set the argument `dns_servers = ["4.4.4.4"]` to enable this option. For multiple DNS servers, set the argument `dns_servers = ["4.4.4.4", "8.8.8.8"]`
+
 ## Subnets
 
 This module handles the creation and a list of address spaces for subnets. This module uses `for_each` to create subnets and corresponding service endpoints, service delegation, and network security groups. This module associates the subnets to network security groups as well with additional user-defined NSG rules.  
 
-This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall.
+This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall if enabled in hub network.
 
 ## Virtual Network service endpoints
 
@@ -367,9 +371,8 @@ Name | Description | Type | Default
 `environment`|The stage of the development lifecycle for the workload that the resource supports|list |`{}`
 `is_spoke_deployed_to_same_hub_subscription`|Specify if the Spoke module using the same subscription as Hub|string|`true`
 `vnet_address_space`|Virtual Network address space to be used |list|`[]`
-`create_ddos_plan` | Controls if DDoS protection plan should be created | string | `"false"`
+`create_ddos_plan` | Controls if DDoS protection plan should be created | string | `false`
 `dns_servers` | List of DNS servers to use for virtual network | list |`[]`
-`create_network_watcher`|Controls if Network Watcher resources should be created for the Azure subscription |string|`true`
 `subnets`|For each subnet, create an object that contain fields|object|`{}`
 `subnet_name`|A name of subnets inside virtual network| object |`{}`
 `subnet_address_prefix`|A list of subnets address prefixes inside virtual network|
