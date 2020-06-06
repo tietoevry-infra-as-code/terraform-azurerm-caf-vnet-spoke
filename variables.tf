@@ -47,11 +47,6 @@ variable "dns_servers" {
   default     = []
 }
 
-variable "create_network_watcher" {
-  description = "Controls if Network Watcher resources should be created for the Azure subscription"
-  default     = true
-}
-
 variable "subnets" {
   description = "For each subnet, create an object that contain fields"
   default     = {}
