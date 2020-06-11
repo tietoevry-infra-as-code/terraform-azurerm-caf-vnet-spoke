@@ -61,7 +61,6 @@ module "vnet-spoke" {
   log_analytics_workspace_id           = var.log_analytics_workspace_id
   log_analytics_customer_id            = var.log_analytics_customer_id
   log_analytics_logs_retention_in_days = 30
-  azure_monitor_logs_retention_in_days = 30
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   # These are default subnets with required configuration, check README.md for more details
@@ -137,7 +136,7 @@ This is an optional feature and only applicable if you are using your own DNS se
 
 This module handles the creation and a list of address spaces for subnets. This module uses `for_each` to create subnets and corresponding service endpoints, service delegation, and network security groups. This module associates the subnets to network security groups as well with additional user-defined NSG rules.  
 
-This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall.
+This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall if `hub_firewall_private_ip_address` argument set else all traffic will forward to VNet.
 
 ## Virtual Network service endpoints
 
