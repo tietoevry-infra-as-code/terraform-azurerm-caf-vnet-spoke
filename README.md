@@ -12,12 +12,13 @@ These types of resources are supported:
 * [Subnets](https://www.terraform.io/docs/providers/azurerm/r/subnet.html)
 * [Subnet Service Delegation](https://www.terraform.io/docs/providers/azurerm/r/subnet.html#delegation)
 * [Virtual Network service endpoints](https://www.terraform.io/docs/providers/azurerm/r/subnet.html#service_endpoints)
+* [Private Link service/Endpoint network policies on Subnet](https://www.terraform.io/docs/providers/azurerm/r/subnet.html#enforce_private_link_endpoint_network_policies)
 * [AzureNetwork DDoS Protection Plan](https://www.terraform.io/docs/providers/azurerm/r/network_ddos_protection_plan.html)
-* [Network Watcher](https://www.terraform.io/docs/providers/azurerm/r/network_watcher.html)
 * [Network Security Groups](https://www.terraform.io/docs/providers/azurerm/r/network_security_group.html)
-* [Route Table](https://www.terraform.io/docs/providers/azurerm/r/route_table.html)
+* [Routing traffic to Hub firewall](https://www.terraform.io/docs/providers/azurerm/r/route_table.html)
 * [Peering to Hub Network](https://www.terraform.io/docs/providers/azurerm/r/role_assignment.html)
 * [Azure Monitoring Diagnostics](https://www.terraform.io/docs/providers/azurerm/r/monitor_diagnostic_setting.html)
+* [Network Watcher](https://www.terraform.io/docs/providers/azurerm/r/network_watcher.html)
 * [Network Watcher Workflow Logs](https://www.terraform.io/docs/providers/azurerm/r/network_watcher_flow_log.html)
 * [Linking Hub Private DNS Zone](https://www.terraform.io/docs/providers/azurerm/r/private_dns_zone.html)
 
@@ -130,13 +131,13 @@ By default, this module will not create a DDoS Protection Plan. You can enable/d
 
 ## Custom DNS servers
 
-This is an optional feature and only applicable if you are using your own DNS servers superseding default DNS services provided by Azure. Set the argument `dns_servers = ["4.4.4.4"]` to enable this option. For multiple DNS servers, set the argument `dns_servers = ["4.4.4.4", "8.8.8.8"]`
+This is an optional feature and only applicable if you are using your own DNS servers superseding default DNS services provided by Azure.Set the argument `dns_servers = ["4.4.4.4"]` to enable this option. For multiple DNS servers, set the argument `dns_servers = ["4.4.4.4", "8.8.8.8"]`
 
 ## Subnets
 
 This module handles the creation and a list of address spaces for subnets. This module uses `for_each` to create subnets and corresponding service endpoints, service delegation, and network security groups. This module associates the subnets to network security groups as well with additional user-defined NSG rules.  
 
-This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall if enabled in hub network.
+This module creates 2 subnets by default: Application Subnet and Database Subnet and both subnets route the traffic through the firewall.
 
 ## Virtual Network service endpoints
 
@@ -202,7 +203,7 @@ module "vnet-hub" {
 
 ## `enforce_private_link_endpoint_network_policies` - Private Link Endpoint on the subnet
 
-Network policies, like network security groups (NSG), are not supported for Private Link Endpoints=. In order to deploy a Private Link Endpoint on a given subnet, you must set the `enforce_private_link_endpoint_network_policies` attribute to `true`. This setting is only applicable for the Private Link Endpoint, for all other resources in the subnet access is controlled based via the Network Security Group which can be configured using the `azurerm_subnet_network_security_group_association` resource.
+Network policies, like network security groups (NSG), are not supported for Private Link Endpoints. In order to deploy a Private Link Endpoint on a given subnet, you must set the `enforce_private_link_endpoint_network_policies` attribute to `true`. This setting is only applicable for the Private Link Endpoint, for all other resources in the subnet access is controlled based via the Network Security Group which can be configured using the `azurerm_subnet_network_security_group_association` resource.
 
 This module Enable or Disable network policies for the private link endpoint on the subnet. The default value is `false`. If you are enabling the Private Link Endpoints on the subnet you shouldn't use Private Link Services as it's conflicts.
 
@@ -344,7 +345,7 @@ End Date of the Project|Date when this application, workload, or service is plan
 
 ```hcl
 module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v1.0.0"
+  source = "github.com/kumarvit/terraform-azurerm-caf-vnet-hub-firewall"
   create_resource_group   = true
 
   # ... omitted
@@ -371,7 +372,7 @@ Name | Description | Type | Default
 `environment`|The stage of the development lifecycle for the workload that the resource supports|list |`{}`
 `is_spoke_deployed_to_same_hub_subscription`|Specify if the Spoke module using the same subscription as Hub|string|`true`
 `vnet_address_space`|Virtual Network address space to be used |list|`[]`
-`create_ddos_plan` | Controls if DDoS protection plan should be created | string | `false`
+`create_ddos_plan` | Controls if DDoS protection plan should be created | string | `"false"`
 `dns_servers` | List of DNS servers to use for virtual network | list |`[]`
 `subnets`|For each subnet, create an object that contain fields|object|`{}`
 `subnet_name`|A name of subnets inside virtual network| object |`{}`
@@ -382,30 +383,29 @@ Name | Description | Type | Default
 `nsg_outbound_rule`|network security groups settings - a NSG is always created for each subnet|object|`{}`
 `hub_virtual_network_id`|The Resource id of the Hub Virtual Network|string|`""`
 `hub_firewall_private_ip_address`|The Private IP of the Firewall created by Hub Module|string|`""`
-`private_dns_zone_name`|The name of the Private DNS Zone. Must be a valid domain name to enable the resource creation|string|`""`
+`private_dns_zone_name`|The name of the Hub virtual network Private DNS Zone. Must be a valid domain name to enable the resource creation|string|`""`
 `use_remote_gateways`|Controls if remote gateways can be used on the local virtual network|string|`false`
 `hub_storage_account_id`|The resource id of storage account created by hub module for logs storage|string|`""`
 `log_analytics_workspace_id`|Specifies the resource id of the Log Analytics Workspace|string|`""`
 `log_analytics_customer_id`|The Workspace (or Customer) ID for the Log Analytics Workspace|string|`""`
 `log_analytics_logs_retention_in_days`|The log analytics workspace data retention in days. Possible values range between `30` and `730`|number|`30`
-`azure_monitor_logs_retention_in_days`|The Azure Monitoring data retention in days|number|`30`
 `Tags`|A map of tags to add to all resources|map|`{}`
 
 ## Outputs
 
 |Name | Description|
 |---- | -----------|
-`resource_group_name`| The name of the resource group in which resources are created
-`resource_group_id`| The id of the resource group in which resources are created
-`resource_group_location`| The location of the resource group in which resources are created
-`virtual_network_name` | The name of the virtual network.
-`virtual_network_id` |The virtual NetworkConfiguration ID.
-`virtual_network_address_space` | List of address spaces that are used the virtual network.
-`subnet_ids` | List of IDs of subnets
-`subnet_address_prefixes` | List of address prefix for  subnets
+`resource_group_name`|The name of the resource group in which resources are created
+`resource_group_id`|The id of the resource group in which resources are created
+`resource_group_location`|The location of the resource group in which resources are created
+`virtual_network_name`|The name of the virtual network.
+`virtual_network_id`|The virtual NetworkConfiguration ID.
+`virtual_network_address_space`|List of address spaces that are used the virtual network.
+`subnet_ids`|List of IDs of subnets
+`subnet_address_prefixes`|List of address prefix for  subnets
 `network_security_group_ids`|List of Network security groups and ids
-`ddos_protection_plan_id` | Azure Network DDoS protection plan id
-`network_watcher_id` | ID of Network Watcher
+`ddos_protection_plan_id`|Azure Network DDoS protection plan id
+`network_watcher_id`|ID of Network Watcher
 `route_table_name`|The resource id of the route table
 `route_table_id`|The resource id of the route table
 

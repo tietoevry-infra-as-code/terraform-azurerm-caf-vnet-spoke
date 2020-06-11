@@ -19,7 +19,8 @@ module "vnet-spoke" {
   # Resource group is named like this: rg-spoke-tieto-internal-prod-westeurope-001
   resource_group_name = "rg-spoke-tieto-internal-shared-westeurope-001"
   location            = "westeurope"
-  # Specify if you are deploying the spoke VNet using the same hub subscription
+
+  # Specify if you are deploying the spoke VNet using the same hub Azure subscription
   is_spoke_deployed_to_same_hub_subscription = false
 
   # Provide valid VNet Address space for spoke virtual network.  
@@ -44,7 +45,6 @@ module "vnet-spoke" {
   log_analytics_workspace_id           = var.log_analytics_workspace_id
   log_analytics_customer_id            = var.log_analytics_customer_id
   log_analytics_logs_retention_in_days = 30
-  azure_monitor_logs_retention_in_days = 30
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   # These are default subnets with required configuration, check README.md for more details
@@ -53,7 +53,7 @@ module "vnet-spoke" {
   subnets = {
 
     app_subnet = {
-      subnet_name           = "application"
+      subnet_name           = "applicaiton"
       subnet_address_prefix = ["10.2.1.0/24"]
       service_endpoints     = ["Microsoft.Storage"]
 
@@ -118,16 +118,16 @@ Run `terraform destroy` when you don't need these resources.
 
 |Name | Description|
 |---- | -----------|
-`resource_group_name`| The name of the resource group in which resources are created
-`resource_group_id`| The id of the resource group in which resources are created
-`resource_group_location`| The location of the resource group in which resources are created
-`virtual_network_name` | The name of the virtual network.
-`virtual_network_id` |The virtual NetworkConfiguration ID.
-`virtual_network_address_space` | List of address spaces that are used the virtual network.
-`subnet_ids` | List of IDs of subnets
-`subnet_address_prefixes` | List of address prefix for  subnets
+`resource_group_name`|The name of the resource group in which resources are created
+`resource_group_id`|The id of the resource group in which resources are created
+`resource_group_location`|The location of the resource group in which resources are created
+`virtual_network_name`|The name of the virtual network.
+`virtual_network_id`|The virtual NetworkConfiguration ID.
+`virtual_network_address_space`|List of address spaces that are used the virtual network.
+`subnet_ids`|List of IDs of subnets
+`subnet_address_prefixes`|List of address prefix for  subnets
 `network_security_group_ids`|List of Network security groups and ids
-`ddos_protection_plan_id` | Azure Network DDoS protection plan id
-`network_watcher_id` | ID of Network Watcher
+`ddos_protection_plan_id`|Azure Network DDoS protection plan id
+`network_watcher_id`|ID of Network Watcher
 `route_table_name`|The resource id of the route table
 `route_table_id`|The resource id of the route table

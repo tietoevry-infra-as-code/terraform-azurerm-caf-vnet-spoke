@@ -52,8 +52,3 @@ variable "log_analytics_logs_retention_in_days" {
   description = "The log analytics workspace data retention in days. Possible values range between 30 and 730."
   default     = ""
 }
-
-variable "azure_monitor_logs_retention_in_days" {
-  description = "The Azure Monitoring data retention in days."
-  default     = ""
-}

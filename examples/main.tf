@@ -1,4 +1,3 @@
-
 module "vnet-spoke" {
   source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v1.0.0"
 
@@ -9,7 +8,8 @@ module "vnet-spoke" {
   # Resource group is named like this: rg-spoke-tieto-internal-prod-westeurope-001
   resource_group_name = "rg-spoke-tieto-internal-shared-westeurope-001"
   location            = "westeurope"
-  # Specify if you are deploying the spoke VNet using the same hub subscription
+
+  # Specify if you are deploying the spoke VNet using the same hub Azure subscription
   is_spoke_deployed_to_same_hub_subscription = false
 
   # Provide valid VNet Address space for spoke virtual network.  
@@ -34,7 +34,6 @@ module "vnet-spoke" {
   log_analytics_workspace_id           = var.log_analytics_workspace_id
   log_analytics_customer_id            = var.log_analytics_customer_id
   log_analytics_logs_retention_in_days = 30
-  azure_monitor_logs_retention_in_days = 30
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
   # These are default subnets with required configuration, check README.md for more details

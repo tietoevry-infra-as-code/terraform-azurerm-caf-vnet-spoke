@@ -1,6 +1,6 @@
-#---------------------------------------------------------
-# Resource Group Creation or selection - Default is "false"
-#----------------------------------------------------------
+#---------------------------------
+# Local declarations
+#---------------------------------
 locals {
   resource_group_name    = element(coalescelist(data.azurerm_resource_group.rgrp.*.name, azurerm_resource_group.rg.*.name, [""]), 0)
   location               = element(coalescelist(data.azurerm_resource_group.rgrp.*.location, azurerm_resource_group.rg.*.location, [""]), 0)
@@ -9,12 +9,18 @@ locals {
   if_ddos_enabled        = var.create_ddos_plan ? [{}] : []
 }
 
+#-------------------------------------
+# Azure Provider Alias for Peering
+#-------------------------------------
 provider "azurerm" {
   alias           = "hub"
   subscription_id = element(split("/", var.hub_virtual_network_id), 2)
   features {}
 }
 
+#---------------------------------------------------------
+# Resource Group Creation or selection - Default is "true"
+#----------------------------------------------------------
 data "azurerm_resource_group" "rgrp" {
   count = var.create_resource_group == false ? 1 : 0
   name  = var.resource_group_name
@@ -30,7 +36,6 @@ resource "azurerm_resource_group" "rg" {
 #-------------------------------------
 # VNET Creation - Default is "true"
 #-------------------------------------
-
 resource "azurerm_virtual_network" "vnet" {
   name                = lower("vnet-spoke-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01")
   location            = local.location
@@ -52,7 +57,6 @@ resource "azurerm_virtual_network" "vnet" {
 #--------------------------------------------
 # Ddos protection plan - Default is "false"
 #--------------------------------------------
-
 resource "azurerm_network_ddos_protection_plan" "ddos" {
   count               = var.create_ddos_plan ? 1 : 0
   name                = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}")
@@ -64,7 +68,6 @@ resource "azurerm_network_ddos_protection_plan" "ddos" {
 #-------------------------------------
 # Network Watcher - Default is "true"
 #-------------------------------------
-
 data "azurerm_resource_group" "netwatch" {
   count = var.is_spoke_deployed_to_same_hub_subscription == true ? 1 : 0
   name  = "NetworkWatcherRG"
@@ -85,9 +88,9 @@ resource "azurerm_network_watcher" "nwatcher" {
   tags                = merge({ "ResourceName" = format("%s", "NetworkWatcher_${local.location}") }, var.tags, )
 }
 
-#--------------------------------------------
-# Subnets Creation - Depends on VNET Resource
-#--------------------------------------------
+#--------------------------------------------------------------------------------------------------------
+# Subnets Creation with, private link endpoint/servie network policies, service endpoints and Deligation.
+#--------------------------------------------------------------------------------------------------------
 resource "azurerm_subnet" "snet" {
   for_each             = var.subnets
   name                 = lower(format("snet-%s-${var.subscription_type}-${local.location}", each.value.subnet_name))
@@ -111,9 +114,9 @@ resource "azurerm_subnet" "snet" {
   }
 }
 
-#-----------------------------------------------
-# Network security group - Default is "false"
-#-----------------------------------------------
+#---------------------------------------------------------------
+# Network security group - NSG created for every subnet in VNet
+#---------------------------------------------------------------
 resource "azurerm_network_security_group" "nsg" {
   for_each            = var.subnets
   name                = lower("nsg_${each.key}_in")
@@ -143,10 +146,9 @@ resource "azurerm_subnet_network_security_group_association" "nsg-assoc" {
   network_security_group_id = azurerm_network_security_group.nsg[each.key].id
 }
 
-#-----------------------------------------------
-# route_table for all subnets - Default is "true"
-#-----------------------------------------------
-
+#-------------------------------------------------
+# route_table to dirvert traffic through Firewall
+#-------------------------------------------------
 resource "azurerm_route_table" "rtout" {
   name                = "route-network-outbound"
   resource_group_name = local.resource_group_name
@@ -170,10 +172,18 @@ resource "azurerm_route" "rt" {
   next_hop_in_ip_address = var.hub_firewall_private_ip_address
 }
 
-#----------------------------------------
-# Private DNS Zone - Default is "true"
-#----------------------------------------
+resource "azurerm_route" "rtlocal" {
+  count               = var.hub_firewall_private_ip_address == null ? 1 : 0
+  name                = lower("route-to-local-${var.project_name}-${var.location}")
+  resource_group_name = local.resource_group_name
+  route_table_name    = azurerm_route_table.rtout.name
+  address_prefix      = "0.0.0.0/0"
+  next_hop_type       = "VnetLocal"
+}
 
+#---------------------------------------------
+# Linking Spoke Vnet to Hub Private DNS Zone
+#---------------------------------------------
 resource "azurerm_private_dns_zone_virtual_network_link" "dzvlink" {
   provider              = azurerm.hub
   count                 = var.private_dns_zone_name != null ? 1 : 0
@@ -185,11 +195,9 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dzvlink" {
   tags                  = merge({ "ResourceName" = format("%s", lower("${var.private_dns_zone_name}-link-to-hub")) }, var.tags, )
 }
 
-
-#----------------------------------------------------
-# Peering to Hub Virtual Network - Default is "true"
-#----------------------------------------------------
-
+#-----------------------------------------------
+# Peering between Hub and Spoke Virtual Network
+#-----------------------------------------------
 resource "azurerm_virtual_network_peering" "spoke_to_hub" {
   name                         = lower("peering-to-hub-${element(split("/", var.hub_virtual_network_id), 8)}")
   resource_group_name          = local.resource_group_name
@@ -213,9 +221,9 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke" {
   use_remote_gateways          = false
 }
 
-#-----------------------------------------------
-# Network Watcher flow logs - Default is "true"
-#-----------------------------------------------
+#-----------------------------------------
+# Network flow logs for subnet and NSG
+#-----------------------------------------
 resource "azurerm_network_watcher_flow_log" "nwflog" {
   for_each                  = var.subnets
   network_watcher_name      = var.is_spoke_deployed_to_same_hub_subscription == true ? "NetworkWatcher_${local.netwatcher_rg_location}" : azurerm_network_watcher.nwatcher.0.name
@@ -227,7 +235,7 @@ resource "azurerm_network_watcher_flow_log" "nwflog" {
 
   retention_policy {
     enabled = true
-    days    = var.log_analytics_logs_retention_in_days
+    days    = 0
   }
 
   traffic_analytics {
@@ -239,11 +247,9 @@ resource "azurerm_network_watcher_flow_log" "nwflog" {
   }
 }
 
-#----------------------------------------------------
-# azurerm monitoring diagnostics - Default is "true"
-#----------------------------------------------------
-# vpc, and all other resources. 
-
+#---------------------------------------------------------------
+# azurerm monitoring diagnostics - VNet, NSG, PIP, and Firewall
+#---------------------------------------------------------------
 resource "azurerm_monitor_diagnostic_setting" "vnet" {
   name                       = lower("vnet-${var.project_name}-diag")
   target_resource_id         = azurerm_virtual_network.vnet.id
@@ -255,16 +261,14 @@ resource "azurerm_monitor_diagnostic_setting" "vnet" {
     enabled  = true
 
     retention_policy {
-      enabled = true
-      days    = var.azure_monitor_logs_retention_in_days
+      enabled = false
     }
   }
   metric {
     category = "AllMetrics"
 
     retention_policy {
-      enabled = true
-      days    = var.azure_monitor_logs_retention_in_days
+      enabled = false
     }
   }
 }
@@ -283,8 +287,7 @@ resource "azurerm_monitor_diagnostic_setting" "nsg" {
       enabled  = true
 
       retention_policy {
-        enabled = true
-        days    = var.azure_monitor_logs_retention_in_days
+        enabled = false
       }
     }
   }

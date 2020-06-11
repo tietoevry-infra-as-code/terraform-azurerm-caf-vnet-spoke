@@ -57,7 +57,7 @@ output "network_watcher_id" {
   value       = module.vnet-spoke.network_watcher_id
 }
 
-
+# Route table
 output "route_table_name" {
   description = "The name of the route table"
   value       = module.vnet-spoke.route_table_name
@@ -67,4 +67,3 @@ output "route_table_id" {
   description = "The resource id of the route table"
   value       = module.vnet-spoke.route_table_id
 }
-

@@ -29,7 +29,8 @@ variable "environment" {
 }
 
 variable "is_spoke_deployed_to_same_hub_subscription" {
-  default = true
+  description = "Specify the Azure subscription to use to create the resoruces. possible to use diferent Azure subscription for spokes."
+  default     = true
 }
 
 variable "vnet_address_space" {
@@ -59,17 +60,11 @@ variable "hub_virtual_network_id" {
 
 variable "hub_firewall_private_ip_address" {
   description = "The private IP of the hub virtual network firewall"
-  default     = ""
+  default     = null
 }
 
-/*variable "service_principals" {
-  description = "List of principal ids that need access to peer to this Hub network. All service principals used to deploy spoke networks must have access to peer."
-  type        = list(string)
-  default     = []
-}*/
-
 variable "private_dns_zone_name" {
-  description = "The name of the Private DNS zone"
+  description = "The name of the Hub Private DNS zone"
   default     = null
 }
 
@@ -95,11 +90,6 @@ variable "log_analytics_customer_id" {
 
 variable "log_analytics_logs_retention_in_days" {
   description = "The log analytics workspace data retention in days. Possible values range between 30 and 730."
-  default     = ""
-}
-
-variable "azure_monitor_logs_retention_in_days" {
-  description = "The Azure Monitoring data retention in days."
   default     = ""
 }
 
