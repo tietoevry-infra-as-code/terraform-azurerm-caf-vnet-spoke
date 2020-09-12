@@ -49,13 +49,13 @@ output "network_security_group_ids" {
 # DDoS Protection Plan
 output "ddos_protection_plan_id" {
   description = "Ddos protection plan details"
-  value       = element(concat(azurerm_network_ddos_protection_plan.ddos.*.id, [""]), 0)
+  value       = var.create_ddos_plan ? element(concat(azurerm_network_ddos_protection_plan.ddos.*.id, [""]), 0) : null
 }
 
 # Network Watcher
 output "network_watcher_id" {
   description = "ID of Network Watcher"
-  value       = element(concat(azurerm_network_watcher.nwatcher.*.id, [""]), 0)
+  value       = var.is_spoke_deployed_to_same_hub_subscription == false ? element(concat(azurerm_network_watcher.nwatcher.*.id, [""]), 0) : null
 }
 
 output "route_table_name" {
