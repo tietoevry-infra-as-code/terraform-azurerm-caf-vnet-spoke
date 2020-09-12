@@ -1,6 +1,6 @@
 module "vnet-spoke" {
-  //source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v1.0.0"
-  source = "../../"
+  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v1.0.0"
+
   # By default, this module will create a resource group, proivde the name here
   # to use an existing resource group, specify the existing resource group name,
   # and set the argument to `create_resource_group = false`. Location will be same as existing RG.
@@ -15,16 +15,16 @@ module "vnet-spoke" {
   vnet_address_space = ["10.2.0.0/16"]
 
   # Hub network details to create peering and other setup
-  hub_virtual_network_id          = "/subscriptions/f3410f97-ff27-4a79-b3ee-69a3e5c62beb/resourceGroups/rg-hub-internal-shared-westeurope-001/providers/Microsoft.Network/virtualNetworks/vnet-demo-hub-westeurope" #var.hub_virtual_network_id
+  hub_virtual_network_id          = var.hub_virtual_network_id
   hub_firewall_private_ip_address = "10.1.0.4"
   private_dns_zone_name           = "publiccloud.example.com"
-  hub_storage_account_id          = "/subscriptions/f3410f97-ff27-4a79-b3ee-69a3e5c62beb/resourceGroups/rg-hub-internal-shared-westeurope-001/providers/Microsoft.Storage/storageAccounts/stdiaglogsdemohub" #var.hub_storage_account_id
+  hub_storage_account_id          = var.hub_storage_account_id
 
   # (Required) To enable Azure Monitoring and flow logs
   # pick the values for log analytics workspace which created by Hub module
   # Possible values range between 30 and 730
-  log_analytics_workspace_id           = "/subscriptions/f3410f97-ff27-4a79-b3ee-69a3e5c62beb/resourcegroups/rg-hub-internal-shared-westeurope-001/providers/microsoft.operationalinsights/workspaces/logaws-wbgzj2nx-demo-hub-westeurope" #var.log_analytics_workspace_id
-  log_analytics_customer_id            = "6e4c8afd-338e-4611-9d10-724ef5f36990"                                                                                                                                                            #var.log_analytics_customer_id
+  log_analytics_workspace_id           = var.log_analytics_workspace_id
+  log_analytics_customer_id            = var.log_analytics_customer_id
   log_analytics_logs_retention_in_days = 30
 
   # Multiple Subnets, Service delegation, Service Endpoints, Network security groups
