@@ -37,12 +37,12 @@ resource "azurerm_resource_group" "rg" {
 # VNET Creation - Default is "true"
 #-------------------------------------
 resource "azurerm_virtual_network" "vnet" {
-  name                = lower("vnet-spoke-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01")
+  name                = lower("vnet-${var.spoke_vnet_name}-${local.location}")
   location            = local.location
   resource_group_name = local.resource_group_name
   address_space       = var.vnet_address_space
   dns_servers         = var.dns_servers
-  tags                = merge({ "ResourceName" = lower("vnet-${var.project_name}-${var.subscription_type}-${var.environment}-${local.location}-01") }, var.tags, )
+  tags                = merge({ "ResourceName" = lower("vnet-${var.spoke_vnet_name}-${local.location}") }, var.tags, )
 
   dynamic "ddos_protection_plan" {
     for_each = local.if_ddos_enabled
@@ -59,10 +59,10 @@ resource "azurerm_virtual_network" "vnet" {
 #--------------------------------------------
 resource "azurerm_network_ddos_protection_plan" "ddos" {
   count               = var.create_ddos_plan ? 1 : 0
-  name                = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}")
+  name                = lower("${var.spoke_vnet_name}-ddos-protection-plan")
   resource_group_name = local.resource_group_name
   location            = local.location
-  tags                = merge({ "ResourceName" = lower("${var.project_name}-ddos-protection-plan-${var.subscription_type}") }, var.tags, )
+  tags                = merge({ "ResourceName" = lower("${var.spoke_vnet_name}-ddos-protection-plan") }, var.tags, )
 }
 
 #-------------------------------------
@@ -93,7 +93,7 @@ resource "azurerm_network_watcher" "nwatcher" {
 #--------------------------------------------------------------------------------------------------------
 resource "azurerm_subnet" "snet" {
   for_each             = var.subnets
-  name                 = lower(format("snet-%s-${var.subscription_type}-${local.location}", each.value.subnet_name))
+  name                 = lower(format("snet-%s-${var.spoke_vnet_name}-${local.location}", each.value.subnet_name))
   resource_group_name  = local.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = each.value.subnet_address_prefix
@@ -164,7 +164,7 @@ resource "azurerm_subnet_route_table_association" "rtassoc" {
 
 resource "azurerm_route" "rt" {
   count                  = var.hub_firewall_private_ip_address != null ? 1 : 0
-  name                   = lower("route-to-firewall-${var.project_name}-${var.location}")
+  name                   = lower("route-to-firewall-${var.spoke_vnet_name}-${local.location}")
   resource_group_name    = local.resource_group_name
   route_table_name       = azurerm_route_table.rtout.name
   address_prefix         = "0.0.0.0/0"
@@ -174,7 +174,7 @@ resource "azurerm_route" "rt" {
 
 resource "azurerm_route" "rtlocal" {
   count               = var.hub_firewall_private_ip_address == null ? 1 : 0
-  name                = lower("route-to-local-${var.project_name}-${var.location}")
+  name                = lower("route-to-local-${var.spoke_vnet_name}-${local.location}")
   resource_group_name = local.resource_group_name
   route_table_name    = azurerm_route_table.rtout.name
   address_prefix      = "0.0.0.0/0"
@@ -251,7 +251,7 @@ resource "azurerm_network_watcher_flow_log" "nwflog" {
 # azurerm monitoring diagnostics - VNet, NSG, PIP, and Firewall
 #---------------------------------------------------------------
 resource "azurerm_monitor_diagnostic_setting" "vnet" {
-  name                       = lower("vnet-${var.project_name}-diag")
+  name                       = lower("vnet-${var.spoke_vnet_name}-diag")
   target_resource_id         = azurerm_virtual_network.vnet.id
   storage_account_id         = var.hub_storage_account_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
