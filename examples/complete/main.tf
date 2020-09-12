@@ -48,7 +48,7 @@ module "vnet-spoke" {
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        ["ntp_out", "203", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
 
@@ -59,8 +59,9 @@ module "vnet-spoke" {
       nsg_inbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["http", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
-        ["https", "101", "Inbound", "Allow", "Tcp", "443", "*", ""],
+        ["rdp", "100", "Inbound", "Allow", "Tcp", "3389", "*", "0.0.0.0/0"],
+        ["dbport1", "101", "Inbound", "Allow", "Tcp", "1433", "*", ""],
+        ["dbport2", "102", "Inbound", "Allow", "Tcp", "1434", "*", ""],
 
       ]
       nsg_outbound_rules = [
