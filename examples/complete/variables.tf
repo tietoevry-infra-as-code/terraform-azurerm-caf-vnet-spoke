@@ -1,8 +1,3 @@
-variable "location" {
-  description = "The location/region to keep all your network resources"
-  default     = ""
-}
-
 variable "hub_virtual_network_id" {
   description = "The id of hub virutal network"
   default     = ""

@@ -2,7 +2,7 @@
 
 This module deploys a spoke network using the [Microsoft recommended Hub-Spoke network topology](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke). Usually, only one hub in each region with multiple spokes and each of them can also be in separate subscriptions.
 
-If you are deploying the spoke VNet in the same Hub Network subscription, then make sure you have set the argument `is_spoke_deployed_to_same_hub_subscription = true`. This helps this module to manage the network watcher, flow logs and traffic analytics resources for all the subnets in the Virtual Network. If you are deploying the spoke virtual networks in separate subscriptions, then set this argument to `false`.
+>If you are deploying the spoke VNet in the same Hub Network subscription, then make sure you have set the argument `is_spoke_deployed_to_same_hub_subscription = true`. This helps this module to manage the network watcher, flow logs and traffic analytics resources for all the subnets in the Virtual Network. If you are deploying the spoke virtual networks in separate subscriptions, then set this argument to `false`.
 
 This is designed to quickly deploy hub and spoke architecture in the azure and further security hardening would be recommend to add appropriate NSG rules to use this for any production workloads.
 
@@ -26,14 +26,15 @@ These types of resources are supported:
 
 ```hcl
 module "vnet-spoke" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # By default, this module will create a resource group, proivde the name here
   # to use an existing resource group, specify the existing resource group name,
   # and set the argument to `create_resource_group = false`. Location will be same as existing RG.
-  resource_group_name = "rg-spoke-shared-westeurope-001"
+  resource_group_name = "rg-spoke-demo-internal-shared-westeurope-001"
   location            = "westeurope"
-  spoke_vnet_name     = "demo-spoke"
+  spoke_vnet_name     = "default-spoke"
 
   # Specify if you are deploying the spoke VNet using the same hub Azure subscription
   is_spoke_deployed_to_same_hub_subscription = true
@@ -75,7 +76,7 @@ module "vnet-spoke" {
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        ["ntp_out", "203", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
 
@@ -87,13 +88,13 @@ module "vnet-spoke" {
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
         ["http", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
-        ["https", "101", "Inbound", "Allow", "Tcp", "443", "*", ""],
-
+        ["sql_port", "101", "Inbound", "Allow", "Tcp", "1433", "*", ""],
       ]
+
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        ["ntp_out", "102", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
   }
@@ -139,8 +140,9 @@ This module supports enabling the service endpoint of your choosing under the vi
 > **Recommendation: It is recommended to set as few service endpoints as possible on Spoke subnets. Storage Endpoint is useful and doesn't clutter the firewall logs. Besides, add other endpoints if those are absolutely necessary.**
 
 ```hcl
-module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+module "vnet-spoke" {
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # .... omitted
 
@@ -159,39 +161,6 @@ module "vnet-hub" {
 }
 ```
 
-## Subnet Service Delegation
-
-Subnet delegation enables you to designate a specific subnet for an Azure PaaS service of your choice that needs to be injected into your virtual network. The Subnet delegation provides full control to manage the integration of Azure services into virtual networks.
-
-This module supports enabling the service delegation of your choosing under the virtual network and with the specified subnet.  For more information, check the [terraform resource documentation](https://www.terraform.io/docs/providers/azurerm/r/subnet.html#service_delegation).
-
-```hcl
-module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
-
-  # .... omitted
-
-  # Multiple Subnets, Service delegation, Service Endpoints
-  subnets = {
-    mgnt_subnet = {
-      subnet_name           = "management"
-      subnet_address_prefix = "10.1.2.0/24"
-
-      delegation = {
-        name = "demodelegationcg"
-        service_delegation = {
-          name    = "Microsoft.ContainerInstance/containerGroups"
-          actions = ["Microsoft.Network/virtualNetworks/subnets/join/action", "Microsoft.Network/virtualNetworks/subnets/prepareNetworkPolicies/action"]
-        }
-      }
-    }
-  }
-
-# ....omitted
-
-}
-```
-
 ## `enforce_private_link_endpoint_network_policies` - Private Link Endpoint on the subnet
 
 Network policies, like network security groups (NSG), are not supported for Private Link Endpoints. In order to deploy a Private Link Endpoint on a given subnet, you must set the `enforce_private_link_endpoint_network_policies` attribute to `true`. This setting is only applicable for the Private Link Endpoint, for all other resources in the subnet access is controlled based via the Network Security Group which can be configured using the `azurerm_subnet_network_security_group_association` resource.
@@ -199,8 +168,9 @@ Network policies, like network security groups (NSG), are not supported for Priv
 This module Enable or Disable network policies for the private link endpoint on the subnet. The default value is `false`. If you are enabling the Private Link Endpoints on the subnet you shouldn't use Private Link Services as it's conflicts.
 
 ```hcl
-module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+module "vnet-spoke" {
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # .... omitted
 
@@ -228,8 +198,9 @@ In order to deploy a Private Link Service on a given subnet, you must set the `e
 This module Enable or Disable network policies for the private link service on the subnet. The default value is `false`. If you are enabling the Private Link service on the subnet then, you shouldn't use Private Link endpoints as it's conflicts.
 
 ```hcl
-module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+module "vnet-spoke" {
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # .... omitted
 
@@ -256,25 +227,26 @@ By default, the network security groups connected to all subnets and only allow 
 
 In the Source and Destination columns, `VirtualNetwork`, `AzureLoadBalancer`, and `Internet` are service tags, rather than IP addresses. In the protocol column, Any encompasses `TCP`, `UDP`, and `ICMP`. When creating a rule, you can specify `TCP`, `UDP`, `ICMP` or `*`. `0.0.0.0/0` in the Source and Destination columns represents all addresses.
 
-*You cannot remove the default rules, but you can override them by creating rules with higher priorities.*
+>*You cannot remove the default rules, but you can override them by creating rules with higher priorities.*
 
 ```hcl
-module "vnet-hub" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+module "vnet-spoke" {
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # .... omitted
 
   # Multiple Subnets, Service delegation, Service Endpoints
   subnets = {
     mgnt_subnet = {
-      subnet_name           = "management"
+      subnet_name           = "application"
       subnet_address_prefix = "10.1.2.0/24"
 
       nsg_inbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["weballow", "200", "Inbound", "Allow", "Tcp", "22", "*", ""],
-        ["weballow1", "201", "Inbound", "Allow", "Tcp", "3389", "*", ""],
+        ["weballow", "200", "Inbound", "Allow", "Tcp", "80", "*", ""],
+        ["weballow1", "201", "Inbound", "Allow", "Tcp", "443", "*", ""],
       ]
 
       nsg_outbound_rules = [
@@ -335,14 +307,14 @@ End Date of the Project|Date when this application, workload, or service is plan
 > This module allows you to manage the above metadata tags directly or as a variable using `variables.tf`. All Azure resources which support tagging can be tagged by specifying key-values in argument `tags`. Tag `ResourceName` is added automatically to all resources.
 
 ```hcl
-module "vnet-hub" {
-  source = "github.com/kumarvit/terraform-azurerm-caf-vnet-hub-firewall"
-  create_resource_group   = true
+module "vnet-spoke" {
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # ... omitted
 
   tags = {
-    ProjectName  = "tieto-internal"
+    ProjectName  = "demo-internal"
     Env          = "dev"
     Owner        = "user@example.com"
     BusinessUnit = "CORP"
@@ -372,9 +344,7 @@ Name | Description | Type | Default
 `create_resource_group` | Whether to create resource group and use it for all networking resources | string | `true`
 `resource_group_name` | The name of the resource group in which resources are created | string | `""`
 `location`|The location of the resource group in which resources are created| string | `""`
-`project_name`|The name of the project|string | `""`
-`subscription_type`|Summary description of the purpose of the subscription that contains the resource. Often broken down by deployment environment type or specific workloads. For example, Training, FINANCE, MARKETING, CORP, SHARED|string |`""`
-`environment`|The stage of the development lifecycle for the workload that the resource supports|list |`{}`
+`spoke_vnet_name`|The name of the spoke virtual network|string | `""`
 `is_spoke_deployed_to_same_hub_subscription`|Specify if the Spoke module using the same subscription as Hub|string|`true`
 `vnet_address_space`|Virtual Network address space to be used |list|`[]`
 `create_ddos_plan` | Controls if DDoS protection plan should be created | string | `"false"`
@@ -420,10 +390,9 @@ Name | Description | Type | Default
 
 ## Authors
 
-Originally created by [Kumaraswamy Vithanala (Kumar)](mailto:kumaraswamy.vithanala@tieto.com)
+Originally created by [Kumaraswamy Vithanala](mailto:kumaraswamy.vithanala@tieto.com)
 
 ## Other resources
 
 * [Hub-spoke network topology in Azure](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke)
-
 * [Terraform AzureRM Provider Documentation](https://www.terraform.io/docs/providers/azurerm/index.html)

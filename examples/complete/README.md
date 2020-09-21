@@ -8,16 +8,17 @@ This is designed to quickly deploy hub and spoke architecture in the azure and f
 
 ## Module Usage
 
-``` hcl
+```hcl
 module "vnet-spoke" {
-  source = "github.com/tietoevry-infra-as-code/terraform-azurerm-caf-vnet-spoke?ref=v2.0.0"
+  source  = "kumarvna/caf-virtual-network-spoke/azurerm"
+  version = "2.0.0"
 
   # By default, this module will create a resource group, proivde the name here
   # to use an existing resource group, specify the existing resource group name,
   # and set the argument to `create_resource_group = false`. Location will be same as existing RG.
-  resource_group_name = "rg-spoke-shared-westeurope-001"
+  resource_group_name = "rg-spoke-demo-internal-shared-westeurope-001"
   location            = "westeurope"
-  spoke_vnet_name     = "demo-spoke"
+  spoke_vnet_name     = "default-spoke"
 
   # Specify if you are deploying the spoke VNet using the same hub Azure subscription
   is_spoke_deployed_to_same_hub_subscription = true
@@ -59,7 +60,7 @@ module "vnet-spoke" {
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        ["ntp_out", "203", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
 
@@ -71,13 +72,13 @@ module "vnet-spoke" {
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
         ["http", "100", "Inbound", "Allow", "Tcp", "80", "*", "0.0.0.0/0"],
-        ["https", "101", "Inbound", "Allow", "Tcp", "443", "*", ""],
+        ["sql_port", "101", "Inbound", "Allow", "Tcp", "1433", "*", ""],
 
       ]
       nsg_outbound_rules = [
         # [name, priority, direction, access, protocol, destination_port_range, source_address_prefix, destination_address_prefix]
         # To use defaults, use "" without adding any value and to use this subnet as a source or destination prefix.
-        ["ntp_out", "103", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
+        ["ntp_out", "102", "Outbound", "Allow", "Udp", "123", "", "0.0.0.0/0"],
       ]
     }
   }
@@ -98,7 +99,7 @@ module "vnet-spoke" {
 
 To run this example you need to execute following Terraform commands
 
-``` hcl
+```hcl
 terraform init
 terraform plan
 terraform apply
